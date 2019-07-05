@@ -7,14 +7,13 @@ from scrapyd.interfaces import ISpiderQueue
 from scrapyd import spiderqueue
 
 class SpiderQueueTest(unittest.TestCase):
-    """This test case can be used easily for testing other SpiderQueue's by
-    just changing the _get_queue() method. It also supports queues with
-    deferred methods.
+    """This test case also supports queues with deferred methods.
     """
 
     def setUp(self):
-        self.q = self._get_queue()
+        self.q = spiderqueue.SqliteSpiderQueue(':memory:')
         self.name = 'spider1'
+        self.priority = 5
         self.args = {
             'arg1': 'val1',
             'arg2': 2,
@@ -23,8 +22,6 @@ class SpiderQueueTest(unittest.TestCase):
         self.msg = self.args.copy()
         self.msg['name'] = self.name
 
-    def _get_queue(self):
-        return spiderqueue.SqliteSpiderQueue(':memory:')
 
     def test_interface(self):
         verifyObject(ISpiderQueue, self.q)
@@ -34,7 +31,7 @@ class SpiderQueueTest(unittest.TestCase):
         c = yield maybeDeferred(self.q.count)
         self.assertEqual(c, 0)
 
-        yield maybeDeferred(self.q.add, self.name, **self.args)
+        yield maybeDeferred(self.q.add, self.name, self.priority, **self.args)
 
         c = yield maybeDeferred(self.q.count)
         self.assertEqual(c, 1)
@@ -50,16 +47,16 @@ class SpiderQueueTest(unittest.TestCase):
         l = yield maybeDeferred(self.q.list)
         self.assertEqual(l, [])
 
-        yield maybeDeferred(self.q.add, self.name, **self.args)
-        yield maybeDeferred(self.q.add, self.name, **self.args)
+        yield maybeDeferred(self.q.add, self.name, self.priority, **self.args)
+        yield maybeDeferred(self.q.add, self.name, self.priority, **self.args)
 
         l = yield maybeDeferred(self.q.list)
         self.assertEqual(l, [self.msg, self.msg])
 
     @inlineCallbacks
     def test_clear(self):
-        yield maybeDeferred(self.q.add, self.name, **self.args)
-        yield maybeDeferred(self.q.add, self.name, **self.args)
+        yield maybeDeferred(self.q.add, self.name, self.priority, **self.args)
+        yield maybeDeferred(self.q.add, self.name, self.priority, **self.args)
 
         c = yield maybeDeferred(self.q.count)
         self.assertEqual(c, 2)
@@ -68,13 +65,3 @@ class SpiderQueueTest(unittest.TestCase):
 
         c = yield maybeDeferred(self.q.count)
         self.assertEqual(c, 0)
-
-
-class JsonSpiderQueueTest(unittest.TestCase):
-    def _get_queue(self):
-        return spiderqueue.JsonSqliteSpiderQueue(':memory:')
-
-
-class PickleSpiderQueueTest(unittest.TestCase):
-    def _get_queue(self):
-        return spiderqueue.PickleSqliteSpiderQueue(':memory:')

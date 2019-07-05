@@ -16,6 +16,10 @@ Example request::
 
     curl http://localhost:6800/daemonstatus.json
 
+If basic authentication is enabled::
+
+    curl -u yourusername:yourpassword http://localhost:6800/daemonstatus.json
+
 Example response::
 
     { "status": "ok", "running": "0", "pending": "0", "finished": "0", "node_name": "node-name" }
@@ -63,6 +67,7 @@ Schedule a spider run (also known as a job), returning the job id.
   * ``spider`` (string, required) - the spider name
   * ``setting`` (string, optional) - a Scrapy setting to use when running the spider
   * ``jobid`` (string, optional) - a job id used to identify the job, overrides the default generated UUID
+  * ``priority`` (float, optional) - priority for this project's spider queue — 0 by default
   * ``_version`` (string, optional) - the version of the project to use
   * any other parameter is passed as spider argument
 
@@ -172,18 +177,38 @@ Get the list of pending, running and finished jobs of some project.
 * Supported Request Methods: ``GET``
 * Parameters:
 
-  * ``project`` (string, required) - the project name
+  * ``project`` (string, option) - restrict results to project name
 
 Example request::
 
-    $ curl http://localhost:6800/listjobs.json?project=myproject
+    $ curl http://localhost:6800/listjobs.json?project=myproject | python -m json.tool
 
 Example response::
 
-    {"status": "ok",
-     "pending": [{"id": "78391cc0fcaf11e1b0090800272a6d06", "spider": "spider1"}],
-     "running": [{"id": "422e608f9f28cef127b3d5ef93fe9399", "spider": "spider2", "start_time": "2012-09-12 10:14:03.594664"}],
-     "finished": [{"id": "2f16646cfcaf11e1b0090800272a6d06", "spider": "spider3", "start_time": "2012-09-12 10:14:03.594664", "end_time": "2012-09-12 10:24:03.594664"}]}
+    {
+        "status": "ok",
+        "pending": [
+            {
+                "project": "myproject", "spider": "spider1",
+                "id": "78391cc0fcaf11e1b0090800272a6d06"
+            }
+        ],
+        "running": [
+            {
+                "id": "422e608f9f28cef127b3d5ef93fe9399",
+                "project": "myproject", "spider": "spider2",
+                "start_time": "2012-09-12 10:14:03.594664"
+            }
+        ],
+        "finished": [
+            {
+                "id": "2f16646cfcaf11e1b0090800272a6d06",
+                "project": "myproject", "spider": "spider3",
+                "start_time": "2012-09-12 10:14:03.594664",
+                "end_time": "2012-09-12 10:24:03.594664"
+            }
+        ]
+    }
 
 .. note:: All job data is kept in memory and will be reset when the Scrapyd service is restarted. See `issue 12`_.
 
